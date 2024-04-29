@@ -91,7 +91,8 @@ def perceptron(X=None,y=None,w_0=None,maxchecks=10000,maxiters=10000):
             #if plot_progress:
                 #plot_perceptron(X,y,w)
             break
-     
+    #print(f'checks: {i}')
+    #print(f'iters: {step}') 
     return w
 
 def sign(val):
@@ -107,3 +108,18 @@ def sign(val):
         sign = -1
 
     return sign
+
+def tgus(shl, koc, star = False):
+    '''
+    tgus and tgus* equation
+    ---
+    returns: tgus, result from equation
+    ---
+    args: shl, soil halflife for pesticide
+          koc, partitioning coefficient for pesticide
+          star, boolean for whether or not to calculate tgus or tgus*
+    '''
+    if star == True: tgus = round(0.025*shl * (3.4 - np.log10(koc)),1)     
+    else: tgus = round(shl * (3.4 - np.log10(koc)),1)
+
+    return tgus
