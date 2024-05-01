@@ -123,3 +123,23 @@ def tgus(shl, koc, star = False):
     else: tgus = round(shl * (3.4 - np.log10(koc)),1)
 
     return tgus
+
+def zero_one_loss(x,y, w):
+    '''
+    calculates accuracy  using 0-1 loss
+    ---
+    returns: acc, the percentage of accurately predicted outcomes in y
+    ---
+    args: x, data points 
+          y, outcome
+          w, weight vector
+    '''
+    losses = 0
+    for idx, row in x.iterrows():
+        result = sign(np.dot(w, row))
+
+        if result != y.iloc[idx]:
+            losses += 1
+
+    acc = round((1 - losses / len(x)) * 100, 2)
+    return acc
