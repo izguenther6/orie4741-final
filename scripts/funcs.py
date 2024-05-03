@@ -30,8 +30,6 @@ def nominal(df, colName):
 
     return df, categories
 
-     
-
 def onehot(df=None, columns=None):
     '''
     onehot encoder
@@ -142,15 +140,21 @@ def zero_one_loss(x,y, w):
         if result != y.iloc[idx]:
             losses += 1
 
-    acc = round((1 - losses / len(x)) * 100, 2)
+    acc = round((1 - losses / len(x)), 2) * 100
     return acc
 
-def kfold_crossval_perceptron(df, clf):
+def kfold_crossval(df, clf, modelName):
     '''
     performs k-fold cross validation with model clf on df
     ---
     returns: best_model, the best model from validation
-             
+             best_train_score, the best training accuracy
+             best_val_score, the best validation accuracu
+             test_acc, the model accuracy on the remaining test data
+    ---
+    args: df, the pandas dataframe to perform cross validation on
+          clf, the model to be used
+          modelName, string name of model (perceptron, svc, etc.)
     '''
     df=df.sample(frac=1) 
     train_proportion = 0.8 
@@ -176,34 +180,68 @@ def kfold_crossval_perceptron(df, clf):
     KFold(n_splits=8, random_state=None, shuffle=False)
     for i, (train_index, val_index) in enumerate(kf.split(train_x)):
         # separate split training set to get validation
+        # get indices for kfold
         xt = train_x.loc[train_index,:].reset_index().iloc[:,1:]
         yt = pd.Series(train_y.loc[train_index].reset_index().iloc[:,1:].iloc[:,0])
         xv = train_x.loc[val_index,:].reset_index().iloc[:,1:]
         yv = pd.Series(train_y.loc[val_index].reset_index().iloc[:,1:].iloc[:,0])
 
-        # run clf
-        clf.fit(xt,yt)
-        train_score = round(clf.score(xt, yt),2) * 100
-        w = clf.coef_
-
-        # test weights on validation set with 0-1 loss
-        acc = zero_one_loss(xv,yv,w)
+        # assess model accuracy on train/validation sets
+        train_score, model, acc = model_assessment(modelName, clf, xt, yt, xv, yv)
         avg_accuracy = np.append(acc, avg_accuracy)
 
-        # keep best weight vector
+        # keep best model
         if acc >= np.max(avg_accuracy):
-            w_best = w
+            best_model = model
             best_train_score = train_score
             best_val_score = acc
 
-    # now run 0-1 loss on remaining test set
-    test_acc = zero_one_loss(test_x, test_y, w_best)
+    # check model on remaining test data
+    test_acc = test_accuracy(modelName, test_x, test_y, best_model)
 
-    return w_best, best_train_score, best_val_score, test_acc
+    return best_model, best_train_score, best_val_score, test_acc
 
-def model_assessment(modelName, clf, xt, yt):
+def model_assessment(modelName, clf, xt, yt, xv, yv):
+    '''
+    evaluates model accuracy with fitting set (xt,yt) and accuracy on validation set (xv, yv)
+    ---
+    returns: train_score, the accuracy of the trained model on the training set (xt,yt)
+             model/w, the fitted model based on what modelName is
+             acc, the accuracy of the trained model on the validation set (xv, yv)
+    ---
+    args: modelName, string name of model being built
+          clf, actual sklearn model
+          xt, training data
+          yt, training output
+          xv, validation data
+          yv, validation output
+    '''
     if modelName == 'perceptron':
         clf.fit(xt,yt)
         train_score = round(clf.score(xt, yt),2) * 100
         w = clf.coef_
-        return train_score, w
+        acc = zero_one_loss(xv,yv,w)
+        return train_score, w, acc
+    
+    elif modelName == 'svc':
+        clf.fit(xt,yt)
+        train_score = round(clf.score(xt,yt), 2) * 100
+        model = clf
+        acc = round(clf.score(xv,yv), 2) * 100
+        return train_score, model, acc
+
+def test_accuracy(modelName, test_x, test_y, model):
+    '''
+    evaluates model accuracy on test data
+    ---
+    returns: calculated accuracy depending on which model is passed
+    ---
+    args: modelName, string name of model being built
+          test_x, testing data
+          test_y, testing output
+          model, actual sklearn model
+    '''
+    if modelName == 'perceptron':
+        return zero_one_loss(test_x, test_y, model)
+    if modelName == 'svc':
+        return round(model.score(test_x, test_y),2) * 100
