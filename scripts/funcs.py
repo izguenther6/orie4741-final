@@ -139,20 +139,28 @@ def model_assessment(modelName, clf, xt, yt, xv, yv):
           xv, validation data
           yv, validation output
     '''
+    clf.fit(xt,yt)
+    train_score = round(clf.score(xt, yt),2) * 100
+    pred = clf.predict(xv)
+    acc = round((1 - skm.zero_one_loss(yv,pred, normalize=True)) * 100, 1)
+    return train_score, clf, acc
+
+'''
     if modelName in ['perceptron', 'svc']:
         clf.fit(xt,yt)
         train_score = round(clf.score(xt, yt),2) * 100
         pred = clf.predict(xv)
         acc = round((1 - skm.zero_one_loss(yv,pred, normalize=True)) * 100, 1)
         return train_score, clf, acc
-    '''
-    elif modelName == 'svc':
+    
+    elif modelName == 'tree':
         clf.fit(xt,yt)
         train_score = round(clf.score(xt,yt), 2) * 100
         model = clf
         acc = round(clf.score(xv,yv), 2) * 100
         return train_score, model, acc
-    '''
+'''
+
 def test_accuracy(modelName, test_x, test_y, model):
     '''
     evaluates model accuracy on test data
@@ -164,7 +172,7 @@ def test_accuracy(modelName, test_x, test_y, model):
           test_y, testing output
           model, actual sklearn model
     '''
-    if modelName in ['perceptron','svc']:
+    if modelName in ['perceptron','svc', 'bagging']:
         pred = model.predict(test_x)
         return round((1 - skm.zero_one_loss(test_y, pred, normalize = True)) * 100, 1)
     #if modelName == 'svc':
