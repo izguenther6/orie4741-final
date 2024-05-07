@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import numpy.random as npr
 from sklearn.model_selection import KFold
+import sklearn.metrics as skm
 
 def nominal(df, colName):
     '''
@@ -46,67 +47,9 @@ def onehot(df=None, columns=None):
     for col in columns:
         onehot = pd.get_dummies(df[col])
         df_onehot = pd.concat([onehot, df_onehot], axis = 1)
-        '''
-        train_cols = pd.get_dummies(train_x[col]).columns
-        onehot = pd.DataFrame(0, columns=train_cols, index=range(len(df)))
-        for i in range(len(df)):
-            entry = df[col].iloc[i]
 
-            #check if entry is in the training set
-            #if not, it will not be added to the onehot encoded data
-            if entry in train_cols:
-                onehot.at[i, entry] = 1
-
-        df_onehot = pd.concat([onehot, df_onehot], axis = 1)
-        '''
     return df_onehot
 
-def perceptron(X=None,y=None,w_0=None,maxchecks=10000,maxiters=10000):
-    '''
-    perceptron algorithm from homework 2
-    ---
-    returns: w, weight matrix for Xw = y
-    ---
-    args: X, pandas dataframe of feature data
-          y, pandas series of target of feature data X
-          w_0: initial guess at w
-          maxchecks: maximum number of times algorithm checks for incorrect classification, for decreasing runtime
-          maxiters: maximum number of times algorithm updates w, for decreasing runtime
-    '''
-    if w_0 is None:
-        w_0 = npr.randn(X.shape[1])
-    w = [x for x in w_0] # Make a copy of the intialized weight, since the weight vector is mutable
-    n = len(y)
-    step = 0
-    laststep = 0
-    for i in range(0,maxchecks):
-        if np.dot(y.iloc[i%n,0] * X.iloc[i%n], w) < 0: # Loop over the data points until we find one that violates perceptron condition
-            step += 1
-            laststep = i
-            w += y.iloc[i%n,0] * X.iloc[i%n]
-            #if plot_progress and step%5==0:
-                #plot_perceptron(X,y,w)
-        if i - laststep > n or step > maxiters: # No more violations or number of steps exceed maxiters limit
-            #if plot_progress:
-                #plot_perceptron(X,y,w)
-            break
-    #print(f'checks: {i}')
-    #print(f'iters: {step}') 
-    return w
-
-def sign(val):
-    '''
-    get sign for perceptron loss evaluation
-    ---
-    returns: sign, the result from the sign function for dot(w,x)
-    ---
-    args: result of dot(w,x)
-    '''
-    sign = 1
-    if val < 0:
-        sign = -1
-
-    return sign
 
 def tgus(shl, koc, star = False):
     '''
@@ -122,26 +65,6 @@ def tgus(shl, koc, star = False):
     else: tgus = round(shl * (3.4 - np.log10(koc)),1)
 
     return tgus
-
-def zero_one_loss(x,y, w):
-    '''
-    calculates accuracy  using 0-1 loss
-    ---
-    returns: acc, the percentage of accurately predicted outcomes in y
-    ---
-    args: x, data points 
-          y, outcome
-          w, weight vector
-    '''
-    losses = 0
-    for idx, row in x.iterrows():
-        result = sign(np.dot(w, row))
-
-        if result != y.iloc[idx]:
-            losses += 1
-
-    acc = round((1 - losses / len(x)), 2) * 100
-    return acc
 
 def kfold_crossval(df, clf, modelName):
     '''
@@ -175,9 +98,9 @@ def kfold_crossval(df, clf, modelName):
     test_y = pd.Series(y[t:].reset_index().iloc[:,1:].iloc[:,0])
 
     # perform K-fold cross validation
-    kf = KFold(n_splits=8)
+    kf = KFold(n_splits=6)
     avg_accuracy = []
-    KFold(n_splits=8, random_state=None, shuffle=False)
+    KFold(n_splits=6, random_state=None, shuffle=False)
     for i, (train_index, val_index) in enumerate(kf.split(train_x)):
         # separate split training set to get validation
         # get indices for kfold
@@ -216,20 +139,20 @@ def model_assessment(modelName, clf, xt, yt, xv, yv):
           xv, validation data
           yv, validation output
     '''
-    if modelName == 'perceptron':
+    if modelName in ['perceptron', 'svc']:
         clf.fit(xt,yt)
         train_score = round(clf.score(xt, yt),2) * 100
-        w = clf.coef_
-        acc = zero_one_loss(xv,yv,w)
-        return train_score, w, acc
-    
+        pred = clf.predict(xv)
+        acc = round((1 - skm.zero_one_loss(yv,pred, normalize=True)) * 100, 1)
+        return train_score, clf, acc
+    '''
     elif modelName == 'svc':
         clf.fit(xt,yt)
         train_score = round(clf.score(xt,yt), 2) * 100
         model = clf
         acc = round(clf.score(xv,yv), 2) * 100
         return train_score, model, acc
-
+    '''
 def test_accuracy(modelName, test_x, test_y, model):
     '''
     evaluates model accuracy on test data
@@ -241,7 +164,8 @@ def test_accuracy(modelName, test_x, test_y, model):
           test_y, testing output
           model, actual sklearn model
     '''
-    if modelName == 'perceptron':
-        return zero_one_loss(test_x, test_y, model)
-    if modelName == 'svc':
-        return round(model.score(test_x, test_y),2) * 100
+    if modelName in ['perceptron','svc']:
+        pred = model.predict(test_x)
+        return round((1 - skm.zero_one_loss(test_y, pred, normalize = True)) * 100, 1)
+    #if modelName == 'svc':
+       # return round(model.score(test_x, test_y),2) * 100
