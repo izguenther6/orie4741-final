@@ -143,6 +143,8 @@ def model_assessment(modelName, clf, xt, yt, xv, yv):
     train_score = round(clf.score(xt, yt),2) * 100
     pred = clf.predict(xv)
     acc = round((1 - skm.zero_one_loss(yv,pred, normalize=True)) * 100, 1)
+    if modelName == 'bagging':
+        model = clf.decision_function(xv)
     return train_score, clf, acc
 
 '''
