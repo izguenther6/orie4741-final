@@ -72,7 +72,7 @@ def kfold_crossval(df, clf, modelName):
     ---
     returns: best_model, the best model from validation
              best_train_score, the best training accuracy
-             best_val_score, the best validation accuracu
+             best_val_score, the best validation accuracy
              test_acc, the model accuracy on the remaining test data
     ---
     args: df, the pandas dataframe to perform cross validation on
