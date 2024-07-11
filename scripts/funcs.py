@@ -8,9 +8,9 @@ import numpy.random as npr
 from sklearn.model_selection import KFold
 import sklearn.metrics as skm
 
-def nominal(df, colName):
+def ordinal(df, colName):
     '''
-    assigns values to nominal data
+    assigns values to ordinal data
     ---
     returns: df, pandas dataframe with newly categorized data
              categories, numpy array of number corresponding to category
@@ -20,16 +20,19 @@ def nominal(df, colName):
     '''
     #sort dataframe by colName to make it alphabetical
     #helpful in this project as there are predefined nominal columns of string values "number - words"
-    df.sort_values(by=[colName])
-    categories = np.append('zero', df[colName].unique()) #add zero at the beginning so categories start at 1
-    #categories = df[colName].unique()
+    dfc = df.copy()
+    if colName == 'drainage_class':
+        categories = np.array(['Somewhat excessively drained', 'Well drained', 'Moderately well drained', 'Somewhat poorly drained',
+                                          'Poorly drained', 'Very poorly drained'])
+    elif colName == 'aquifer_vulnerability':
+        categories = np.array(['high', 'medium', 'low'])
 
     #loop through df and assign category values
     for i, row in df.iterrows():
         num = np.where(categories == row[colName])[0][0]
-        df.at[i, colName] = num
+        dfc.at[i, colName] = num
 
-    return df, categories
+    return dfc
 
 def onehot(df=None, columns=None):
     '''
@@ -140,7 +143,7 @@ def model_assessment(modelName, clf, xt, yt, xv, yv):
           yv, validation output
     '''
     clf.fit(xt,yt)
-    train_score = round(clf.score(xt, yt),2) * 100
+    train_score = round(clf.score(xt, yt),3) * 100
     pred = clf.predict(xv)
     acc = round((1 - skm.zero_one_loss(yv,pred, normalize=True)) * 100, 1)
     return train_score, clf, acc
