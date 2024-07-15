@@ -54,18 +54,25 @@ def onehot(df=None, columns=None):
     return df_onehot
 
 
-def tgus(shl, koc, star = False):
+def tgus(shl, app, det, om, bulk, koc):
     '''
-    tgus and tgus* equation
+    calculates tgus equation from soil and pesticide parameters
     ---
     returns: tgus, result from equation
     ---
-    args: shl, soil halflife for pesticide
+    args: shl, soil halflife for pesticide [m3/Mg]
+          app, pesticide application rate [mg/m2]
+          det, pesticide detection limit [mg/m3]
+          om, soil organic matter fraction
+          bulk, soil bulk density [Mg/m3]
           koc, partitioning coefficient for pesticide
-          star, boolean for whether or not to calculate tgus or tgus*
     '''
-    if star == True: tgus = round(0.025*shl * (3.4 - np.log10(koc)),1)     
-    else: tgus = round(shl * (3.4 - np.log10(koc)),1)
+    t = 100 # current assumption, [days]
+    pf = 0.004 # current assumption
+    phi = app / (det * 0.01)
+    foc = 0.6 * om / 100
+    xi = (pf * phi) / (foc * bulk)
+    tgus = round(0.025 * shl * (np.log10(xi/koc)) - 0.0075*t,1)
 
     return tgus
 
@@ -101,9 +108,9 @@ def kfold_crossval(df, clf, modelName):
     test_y = pd.Series(y[t:].reset_index().iloc[:,1:].iloc[:,0])
 
     # perform K-fold cross validation
-    kf = KFold(n_splits=6)
+    kf = KFold(n_splits=4)
     avg_accuracy = []
-    KFold(n_splits=6, random_state=None, shuffle=False)
+    KFold(n_splits=4, random_state=None, shuffle=False)
     for i, (train_index, val_index) in enumerate(kf.split(train_x)):
         # separate split training set to get validation
         # get indices for kfold
