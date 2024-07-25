@@ -89,6 +89,7 @@ def kfold_crossval(df, clf, modelName):
           clf, the model to be used
           modelName, string name of model (perceptron, svc, etc.)
     '''
+
     df=df.sample(frac=1) 
     train_proportion = 0.8 
     n = len(df)
@@ -130,9 +131,9 @@ def kfold_crossval(df, clf, modelName):
             best_val_score = acc
 
     # check model on remaining test data
-    test_acc = test_accuracy(modelName, test_x, test_y, best_model)
+    test_acc, tfpn = test_accuracy(modelName, test_x, test_y, best_model)
 
-    return best_model, best_train_score, best_val_score, test_acc
+    return best_model, best_train_score, best_val_score, test_acc, tfpn
 
 def model_assessment(modelName, clf, xt, yt, xv, yv):
     '''
@@ -155,21 +156,7 @@ def model_assessment(modelName, clf, xt, yt, xv, yv):
     acc = round((1 - skm.zero_one_loss(yv,pred, normalize=True)) * 100, 1)
     return train_score, clf, acc
 
-'''
-    if modelName in ['perceptron', 'svc']:
-        clf.fit(xt,yt)
-        train_score = round(clf.score(xt, yt),2) * 100
-        pred = clf.predict(xv)
-        acc = round((1 - skm.zero_one_loss(yv,pred, normalize=True)) * 100, 1)
-        return train_score, clf, acc
-    
-    elif modelName == 'tree':
-        clf.fit(xt,yt)
-        train_score = round(clf.score(xt,yt), 2) * 100
-        model = clf
-        acc = round(clf.score(xv,yv), 2) * 100
-        return train_score, model, acc
-'''
+
 
 def test_accuracy(modelName, test_x, test_y, model):
     '''
@@ -184,6 +171,19 @@ def test_accuracy(modelName, test_x, test_y, model):
     '''
     if modelName in ['perceptron','svc', 'bagging']:
         pred = model.predict(test_x)
-        return round((1 - skm.zero_one_loss(test_y, pred, normalize = True)) * 100, 1)
+        
+        #find true/false positive/negatives
+        tfpn = pd.DataFrame(data = np.zeros((1,4)),columns = ['true positive', 'true negative', 'false positive', 'false negative'])
+        for i in range(len(pred)):
+            if (pred[i] == test_y[i] and pred[i] == 1):
+                tfpn.loc[0,'true positive'] += 1
+            elif (pred[i] == test_y[i] and pred[i] == -1):
+                tfpn.loc[0,'true negative'] += 1
+            elif (pred[i] != test_y[i] and pred[i] == 1):
+                tfpn.loc[0,'false positive'] += 1
+            else:
+                tfpn.loc[0,'false negative'] += 1    
+           
+        return round((1 - skm.zero_one_loss(test_y, pred)) * 100, 1), tfpn
     #if modelName == 'svc':
        # return round(model.score(test_x, test_y),2) * 100
