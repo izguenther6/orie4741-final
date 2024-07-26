@@ -191,7 +191,7 @@ def test_accuracy(modelName, test_x, test_y, model):
        # return round(model.score(test_x, test_y),2) * 100
 
 def perm_imp(clf, X_test, y_test):
-    result = permutation_importance(clf, X_test, y_test, n_repeats=50, random_state=42, n_jobs=2)
+    result = permutation_importance(estimator=clf, X=X_test, y=y_test, n_repeats=10, random_state=42, n_jobs=2)
 
     sorted_importances_idx = result.importances_mean.argsort()
     importances = pd.DataFrame(result.importances[sorted_importances_idx].T, columns=X_test.columns[sorted_importances_idx],)
