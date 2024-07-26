@@ -7,6 +7,8 @@ import numpy as np
 import numpy.random as npr
 from sklearn.model_selection import KFold
 import sklearn.metrics as skm
+from sklearn.inspection import permutation_importance
+import matplotlib.pyplot as plt
 
 def ordinal(df, colName):
     '''
@@ -131,9 +133,9 @@ def kfold_crossval(df, clf, modelName):
             best_val_score = acc
 
     # check model on remaining test data
+    p_i = perm_imp(best_model, test_x, test_y)
     test_acc, tfpn = test_accuracy(modelName, test_x, test_y, best_model)
-
-    return best_model, best_train_score, best_val_score, test_acc, tfpn
+    return best_model, best_train_score, best_val_score, test_acc, tfpn, p_i
 
 def model_assessment(modelName, clf, xt, yt, xv, yv):
     '''
@@ -187,3 +189,19 @@ def test_accuracy(modelName, test_x, test_y, model):
         return round((1 - skm.zero_one_loss(test_y, pred)) * 100, 1), tfpn
     #if modelName == 'svc':
        # return round(model.score(test_x, test_y),2) * 100
+
+def perm_imp(clf, X_test, y_test):
+    result = permutation_importance(clf, X_test, y_test, n_repeats=50, random_state=42, n_jobs=2)
+
+    sorted_importances_idx = result.importances_mean.argsort()
+    importances = pd.DataFrame(result.importances[sorted_importances_idx].T, columns=X_test.columns[sorted_importances_idx],)
+
+    '''
+    ax = importances.plot.box(vert=False, whis=10)
+    ax.set_title("Permutation Importances (test set)")
+    ax.axvline(x=0, color="k", linestyle="--")
+    ax.set_xlabel("Decrease in accuracy score")
+    ax.figure.tight_layout()
+    '''
+
+    return importances
