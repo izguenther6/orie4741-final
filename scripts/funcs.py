@@ -162,7 +162,7 @@ def model_assessment(modelName, clf, xt, yt, xv, yv):
 
 def test_accuracy(modelName, test_x, test_y, model):
     '''
-    evaluates model accuracy on test data
+    evaluates model accuracy, precision, and recall on test data
     ---
     returns: calculated accuracy depending on which model is passed
     ---
@@ -175,7 +175,8 @@ def test_accuracy(modelName, test_x, test_y, model):
         pred = model.predict(test_x)
         
         #find true/false positive/negatives
-        tfpn = pd.DataFrame(data = np.zeros((1,4)),columns = ['true positive', 'true negative', 'false positive', 'false negative'])
+        tfpn = pd.DataFrame(data = np.zeros((1,7)),columns = ['true positive', 'true negative', 'false positive', 
+                                                              'false negative', 'precision', 'recall', 'f1'])
         for i in range(len(pred)):
             if (pred[i] == test_y[i] and pred[i] == 1):
                 tfpn.loc[0,'true positive'] += 1
@@ -184,24 +185,18 @@ def test_accuracy(modelName, test_x, test_y, model):
             elif (pred[i] != test_y[i] and pred[i] == 1):
                 tfpn.loc[0,'false positive'] += 1
             else:
-                tfpn.loc[0,'false negative'] += 1    
+                tfpn.loc[0,'false negative'] += 1 
+                
+        tfpn.loc[0, 'precision'] = tfpn.loc[0, 'true positive'] / (tfpn.loc[0, 'true positive'] + tfpn.loc[0, 'false positive'])
+        tfpn.loc[0, 'recall'] = tfpn.loc[0, 'true positive'] / (tfpn.loc[0, 'true positive'] + tfpn.loc[0, 'false negative'])
+        tfpn.loc[0, 'f1'] = 2 * ((tfpn.loc[0, 'precision'] * tfpn.loc[0, 'recall']) / (tfpn.loc[0, 'precision'] + tfpn.loc[0, 'recall']))
            
         return round((1 - skm.zero_one_loss(test_y, pred)) * 100, 1), tfpn
-    #if modelName == 'svc':
-       # return round(model.score(test_x, test_y),2) * 100
 
 def perm_imp(clf, X_test, y_test):
     result = permutation_importance(estimator=clf, X=X_test, y=y_test, n_repeats=10, random_state=42, n_jobs=2)
 
     sorted_importances_idx = result.importances_mean.argsort()
     importances = pd.DataFrame(result.importances[sorted_importances_idx].T, columns=X_test.columns[sorted_importances_idx],)
-
-    '''
-    ax = importances.plot.box(vert=False, whis=10)
-    ax.set_title("Permutation Importances (test set)")
-    ax.axvline(x=0, color="k", linestyle="--")
-    ax.set_xlabel("Decrease in accuracy score")
-    ax.figure.tight_layout()
-    '''
 
     return importances
